@@ -45,10 +45,24 @@ output:
     """
 }
 
+process runMafft {
+    publishDir params.out, mode: "copy", overwrite: true
+	container "https://depot.galaxyproject.org/singularity/mafft%3A7.525--h031d066_1"
+    input:
+    path "combined.fasta"
+    output:
+    path "aligned.fasta"
+    script:
+    """
+    mafft --auto combined.fasta > aligned.fasta
+    """
+}
+
 workflow {
   accession_channel = Channel.from(params.accession)
   referenceFasta = downloadFasta(accession_channel)
   genomeList = getSequences()
   combinedFasta = combineFasta(referenceFasta, genomeList) 
-
+	alignedFasta = runMafft(combinedFasta)
+    
 }
