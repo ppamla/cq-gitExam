@@ -1,16 +1,16 @@
 nextflow.enable.dsl = 2
 
-params.accession = "M21012" 
+params.accession = "M21012"
 params.store = "$launchDir/datastore"
-
+params.out = "$launchDir/output"
+//params.fastaSequences = "https://gitlab.com/dabrowskiw/cq-examples/-/raw/master/data/hepatitis_combined.fasta?inline=false"
 
 
 process downloadFasta {
     storeDir params.store 
-	input:
+input:
     val accession
-
-    output:
+output:
     path "${accession}.fasta"
 
     script:
@@ -19,11 +19,36 @@ process downloadFasta {
 	"""
 }
 
+process getSequences {
+  storeDir params.store
+output: 
+	path "hepatitis_combined.fasta"
 
+  script: 
+    """
+    wget https://gitlab.com/dabrowskiw/cq-examples/-/raw/master/data/hepatitis_combined.fasta -O hepatitis_combined.fasta
+    """
+}
+
+
+process combineFasta {
+    publishDir params.out, mode: "copy", overwrite: true
+input:
+    path fasta1
+	path fasta2
+output:
+    path "combined.fasta"
+
+    script:
+    """
+    cat ${fasta1} ${fasta2} > combined.fasta
+    """
+}
 
 workflow {
-
   accession_channel = Channel.from(params.accession)
-  referenceFastaFile= downloadFasta(accession_channel)
+  referenceFasta = downloadFasta(accession_channel)
+  genomeList = getSequences()
+  combinedFasta = combineFasta(referenceFasta, genomeList) 
 
 }
